@@ -39,6 +39,7 @@ Constructor for AudioSprite object. Accepts an optional options object.
 | options.bufferIncrementSize | <code>number</code> | Incremental growth of storage buffer in bytes. Defaults to 100kb |
 
 **Example**  
+<code>
 var AudioSprite = require('audiosprite-pkg');
 
 var as = new AudioSprite();
@@ -50,6 +51,7 @@ as.inputFile( 'inputFile.ogg', function( err ) {
 		as.outputJsonFile( 'output.json' );
 	} );
 } );
+</code>
 
 <a name="AudioSprite#inputSilence"></a>
 ### audioSprite.inputSilence(duration, [options], [callback])
