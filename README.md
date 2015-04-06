@@ -6,6 +6,21 @@ Uses buffer streams to prevent creation of temporary files like the original.
 npm install audiosprite-pkg
 ```
 
+**Example**  
+```
+var AudioSprite = require('audiosprite-pkg');
+
+var as = new AudioSprite();
+// .inputFile can be called as many times as necessary
+as.inputFile( 'inputFile.ogg', function( err ) {
+	// .outputFile can also be called many times with different formats
+	as.outputFile( 'output.mp3', { format: 'mp3' }, function( err ) {
+		// output the final JSON file - this should be called once all other operations have completed
+		as.outputJsonFile( 'output.json' );
+	} );
+} );
+```
+
 <a name="AudioSprite"></a>
 ## AudioSprite
 **Kind**: global class  
@@ -38,20 +53,6 @@ Constructor for AudioSprite object. Accepts an optional options object.
 | options.bufferInitialSize | <code>number</code> | Initial size of storage buffer in bytes. Defaults to 300kb |
 | options.bufferIncrementSize | <code>number</code> | Incremental growth of storage buffer in bytes. Defaults to 100kb |
 
-**Example**  
-```
-var AudioSprite = require('audiosprite-pkg');
-
-var as = new AudioSprite();
-// .inputFile can be called as many times as necessary
-as.inputFile( 'inputFile.ogg', function( err ) {
-	// .outputFile can also be called many times with different formats
-	as.outputFile( 'output.mp3', { format: 'mp3' }, function( err ) {
-		// output the final JSON file
-		as.outputJsonFile( 'output.json' );
-	} );
-} );
-```
 
 <a name="AudioSprite#inputSilence"></a>
 ### audioSprite.inputSilence(duration, [options], [callback])
