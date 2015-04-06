@@ -24,6 +24,54 @@ as.inputFile( 'inputFile.ogg', function( err ) {
 } );
 ```
 
+**Comprehensive example using async.js**
+```
+var AudioSprite = require('audiosprite-pkg');
+
+var as = new AudioSprite( { ffmpeg: '/my/path/to/ffmpeg', sampleRate: 96000, channelCount: 2, trackGap: 3 } );
+async.waterfall( [
+		function( cb ) {
+			as.inputFile( 'sound.mp3', cb );
+		},
+		function( cb ) {
+			as.inputFile( 'sound2.ogg', { name: 'json tag', loop: true }, cb );
+		},
+		function( cb ) {
+			// input method can accept input directly from a stream
+			// accepts the same options as inputFile() does
+			var stream = fs.createReadStream( 'sound3.wav' );
+			as.input( stream, cb );
+		},
+		function( cb ) {
+			// Output final sprite
+			as.outputFile( 'mysprite.mp3', { format: 'mp3' }, cb );
+		},
+		function( cb ) {
+			// Output can be called as many times as necessary to generate different formats,
+			// and can also output to a stream
+			var stream = fs.createWriteStream( 'mySprite.ac3' );
+			as.output( stream, { format: 'ac3' }, cb );
+		},
+		function( cb ) {
+			// Output JSON manifest file
+			as.outputJsonFile( 'mysprite.json' );
+			cb();
+		}
+		function( cb ) {
+			// You can also call outputJson() to just get the manifest object without writing it to file.
+			var myManifest = as.outputJson();
+			console.log( myManifest );
+			cb();
+		}
+	],
+	function( err ) {
+		if ( err ) {
+			console.log( "An error occurred!", err );
+		}
+	}
+);
+```
+
 <a name="AudioSprite"></a>
 ## AudioSprite
 **Kind**: global class  
