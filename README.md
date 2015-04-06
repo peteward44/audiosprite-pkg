@@ -1,5 +1,8 @@
 # audiosprite-pkg
 Based on the audiosprite module (https://github.com/tonistiigi/audiosprite), takes the same functionality but exposes it as a node module instead of command line.
+
+This allows better integration with grunt / gulp and other build systems.
+
 Uses buffer streams to prevent creation of temporary files like the original.
 
 ```
