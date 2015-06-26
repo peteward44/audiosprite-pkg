@@ -237,7 +237,7 @@ AudioSprite.prototype.input = function( stream, options, callback ) {
 
 
 /** Input a track from a file into the sprite.
- * @param {Object} file Input file
+ * @param {string|Array} file Input file or array of input files
  * @param {Object=} options Options object
  * @param {string} options.name Name to use in the output JSON for the track
  * @param {boolean} options.autoplay Whether this should be marked to autoplay in the output JSON
@@ -249,7 +249,23 @@ AudioSprite.prototype.inputFile = function( file, options, callback ) {
 		callback = options;
 		options = {};
 	}
+	var that = this;
 	options = options || {};
+	if ( Array.isArray( file ) ) {
+		return async.eachSeries(
+			file,
+			function( sfile, cb ) {
+				that._inputFile( sfile, options, cb );
+			},
+			callback
+		);
+	} else {
+		return this._inputFile( file, options, callback );
+	}
+};
+
+
+AudioSprite.prototype._inputFile = function( file, options, callback ) {
 	options.name = options.name || path.basename( file, path.extname( file ) );
 	if ( !fs.existsSync(file) ) {
 		return callback({ msg: 'File does not exist', file: file } );
@@ -293,7 +309,7 @@ AudioSprite.prototype.output = function( stream, options, callback ) {
 
 
 /** Outputs the sprite to a file.
- * @param {Object} file Output file
+ * @param {string|Array} file Output file or array of output files
  * @param {Object=} options Options object
  * @param {string} options.name Name to use in the output JSON for the sprite
  * @param {string} options.format What format the file should be outputted as, supports: aiff,caf,wav,ac3,mp3,mp4,m4a,ogg. Defaults to 'ogg'
@@ -304,7 +320,24 @@ AudioSprite.prototype.outputFile = function( file, options, callback ) {
 		callback = options;
 		options = {};
 	}
+	var that = this;
 	options = options || {};
+	if ( Array.isArray( file ) ) {
+		return async.eachSeries(
+			file,
+			function( sfile, cb ) {
+				that._outputFile( sfile, options, cb );
+			},
+			callback
+		);
+	} else {
+		return this._outputFile( file, options, callback );
+	}
+};
+
+
+AudioSprite.prototype._outputFile = function( file, options, callback ) {
+
 	options.name = options.name || path.basename( file );
 	if ( !options.format ) {
 		// try to determine format from file extension

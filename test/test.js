@@ -35,7 +35,13 @@ function simpleOutputFormatTest( format, done ) {
 				as.inputFile( path.join( g_fixturesPath, 'ogg/Symbol0.ogg' ), cb );
 			},
 			function( cb ) {
+				as.inputFile( [ path.join( g_fixturesPath, 'ogg/ReelStop.ogg' ), path.join( g_fixturesPath, 'ogg/Symbol0.ogg' ) ], cb );
+			},
+			function( cb ) {
 				as.outputFile( outputFile, cb );
+			},
+			function( cb ) {
+				as.outputFile( [ path.join( g_outputDir, 'output1.' + format ), path.join( g_outputDir, 'output2.' + format )], cb );
 			},
 			function( cb ) {
 				as.outputJsonFile( outputJsonFile );
