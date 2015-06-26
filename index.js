@@ -6,7 +6,6 @@ var fs = require('fs-extra');
 var path = require('path');
 var async = require('async');
 var spawn = require('child_process').spawn;
-var streamBuffers = require("stream-buffers");
 
 
 function safeSpawn( cmd, args, cb ) {
@@ -84,17 +83,44 @@ var AudioSprite = function( options ) {
 	this._options.bufferInitialSize = isFinite( this._options.bufferInitialSize ) ? this._options.bufferInitialSize : (300 * 1024);
 	this._options.bufferIncrementSize = isFinite( this._options.bufferIncrementSize ) ? this._options.bufferIncrementSize : (100 * 1024);
 	
-	this._wavSpriteStream = new streamBuffers.WritableStreamBuffer( {
-			initialSize: this._options.bufferInitialSize,
-			incrementAmount: this._options.bufferIncrementSize
-		} );
+	this._buffer = new Buffer( this._options.bufferInitialSize );
+	this._bufferPos = 0;
+};
+
+
+AudioSprite.prototype._growBuffer = function( additional ) {
+	var spaceAvailable = this._buffer.length - this._bufferPos;
+	if ( additional > spaceAvailable ) {
+		var extraRequired = additional - spaceAvailable;
+		var chunksRequired = Math.floor( extraRequired / this._options.bufferIncrementSize ) + 1;
+		var newSize = ( this._buffer ? this._buffer.length : 0 ) + ( chunksRequired * this._options.bufferIncrementSize );
+		var newBuffer = new Buffer( newSize );
+		if ( this._buffer ) {
+			this._buffer.copy( newBuffer, 0, 0, this._bufferPos );
+		}
+		this._buffer = newBuffer;
+	}
+};
+
+
+AudioSprite.prototype._appendToBuffer = function( data ) {
+	if( Buffer.isBuffer( data ) ) {
+		this._growBuffer( data.length );
+		data.copy( this._buffer, this._bufferPos, 0 );
+	} else {
+		data = data + "";
+		this._growBuffer( Buffer.byteLength( data ) );
+		this._buffer.write( data, this._bufferPos, encoding || "utf8");
+	}
+	this._bufferPos += data.length;
 };
 
 
 AudioSprite.prototype._appendSilence = function(duration, cb) {
-	var buffer = new Buffer(Math.round(this._options.sampleRate * 2 * this._options.channelCount * duration));
-	buffer.fill(0);
-	this._wavSpriteStream.write(buffer);
+	var size = Math.round(this._options.sampleRate * 2 * this._options.channelCount * duration);
+	this._growBuffer( size );
+	this._buffer.fill( 0, this._bufferPos, this._bufferPos + size );
+	this._bufferPos += size;
 	this._offsetCursor += duration;
 	cb();
 };
@@ -179,7 +205,7 @@ AudioSprite.prototype.input = function( stream, options, callback ) {
 				stream.pipe( ffmpeg.stdin );
 				ffmpeg.stdout.on( 'data', function( data ) {
 					length += data.length;
-					that._wavSpriteStream.write( data );
+					that._appendToBuffer( data );
 				} );
 				ffmpeg.on('exit', function(code, signal) {
 					if (code) {
@@ -248,7 +274,6 @@ AudioSprite.prototype.output = function( stream, options, callback ) {
 	options.name = options.name || 'default';
 	var format = options.format || 'ogg';
 	var that = this;
-	var inputBuffer = this._wavSpriteStream.getContents();
 	var opt = this._getFormatArgs( format );
 	if ( !opt ) {
 		throw new Error( "Unsupported output format '" + format + "'" );
@@ -256,7 +281,7 @@ AudioSprite.prototype.output = function( stream, options, callback ) {
 	var proc = safeSpawn(this._options.ffmpeg,['-y', '-ar', this._options.sampleRate, '-ac', this._options.channelCount, '-f', 's16le', '-i', 'pipe:0'].concat(opt).concat('pipe:'));
 	proc.stdout.pipe( stream );
 //		proc.stderr.pipe( process.stdout );
-	proc.stdin.end( inputBuffer );
+	proc.stdin.end( this._buffer );
 	proc.on('exit', function(code, signal) {
 		if (code) {
 			return callback({ msg: 'Error exporting file', format: format, retcode: code, signal: signal });
