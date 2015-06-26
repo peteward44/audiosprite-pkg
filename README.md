@@ -145,7 +145,7 @@ Input a track from a file into the sprite.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| file | <code>Object</code> | Input file |
+| file | <code>string|Array</code> | Input file or array of input files |
 | [options] | <code>Object</code> | Options object |
 | options.name | <code>string</code> | Name to use in the output JSON for the track |
 | options.autoplay | <code>boolean</code> | Whether this should be marked to autoplay in the output JSON |
@@ -174,7 +174,7 @@ Outputs the sprite to a file.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| file | <code>Object</code> | Output file |
+| file | <code>string|Array</code> | Output file or array of output files |
 | [options] | <code>Object</code> | Options object |
 | options.name | <code>string</code> | Name to use in the output JSON for the sprite |
 | options.format | <code>string</code> | What format the file should be outputted as, supports: aiff,caf,wav,ac3,mp3,mp4,m4a,ogg. Defaults to 'ogg' |
