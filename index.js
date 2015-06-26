@@ -111,7 +111,7 @@ AudioSprite.prototype._appendToBuffer = function( data ) {
 	} else {
 		data = data + "";
 		this._growBuffer( Buffer.byteLength( data ) );
-		this._buffer.write( data, this._bufferPos, encoding || "utf8");
+		this._buffer.write( data, this._bufferPos, "utf8");
 	}
 	this._bufferPos += data.length;
 };
