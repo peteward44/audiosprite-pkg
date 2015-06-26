@@ -3,6 +3,7 @@
 
 // Modified version of audiosprite v0.4.0 tool so we don't have to use the CLI and can use a local version of ffmpeg
 var fs = require('fs-extra');
+var _ = require('underscore');
 var path = require('path');
 var async = require('async');
 var spawn = require('child_process').spawn;
@@ -255,7 +256,7 @@ AudioSprite.prototype.inputFile = function( file, options, callback ) {
 		return async.eachSeries(
 			file,
 			function( sfile, cb ) {
-				that._inputFile( sfile, options, cb );
+				that._inputFile( sfile, _.extend( {}, options ), cb );
 			},
 			callback
 		);
@@ -326,7 +327,7 @@ AudioSprite.prototype.outputFile = function( file, options, callback ) {
 		return async.eachSeries(
 			file,
 			function( sfile, cb ) {
-				that._outputFile( sfile, options, cb );
+				that._outputFile( sfile, _.extend( {}, options ), cb );
 			},
 			callback
 		);
