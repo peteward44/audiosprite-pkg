@@ -66,7 +66,6 @@ as.inputFile( 'inputFile.ogg', function( err ) {
 } );
  */
 var AudioSprite = function( options ) {
-	this._offsetCursor = 0;
 	this._ffmpegVersionChecked = false;
 	this._json = {
 		resources: [],
@@ -89,6 +88,11 @@ var AudioSprite = function( options ) {
 };
 
 
+AudioSprite.prototype._getBufferPositionInTime = function() {
+	return this._bufferPos / this._options.sampleRate / this._options.channelCount / 2;
+};
+
+
 AudioSprite.prototype._growBuffer = function( additional ) {
 	var spaceAvailable = this._buffer.length - this._bufferPos;
 	if ( additional > spaceAvailable ) {
@@ -105,15 +109,19 @@ AudioSprite.prototype._growBuffer = function( additional ) {
 
 
 AudioSprite.prototype._appendToBuffer = function( data ) {
+	var len;
 	if( Buffer.isBuffer( data ) ) {
-		this._growBuffer( data.length );
+		len = data.length;
+		this._growBuffer( len );
 		data.copy( this._buffer, this._bufferPos, 0 );
 	} else {
 		data = data + "";
-		this._growBuffer( Buffer.byteLength( data ) );
+		len = Buffer.byteLength( data );
+		this._growBuffer( len );
 		this._buffer.write( data, this._bufferPos, "utf8");
 	}
 	this._bufferPos += data.length;
+	return len;
 };
 
 
@@ -122,7 +130,6 @@ AudioSprite.prototype._appendSilence = function(duration, cb) {
 	this._growBuffer( size );
 	this._buffer.fill( 0, this._bufferPos, this._bufferPos + size );
 	this._bufferPos += size;
-	this._offsetCursor += duration;
 	cb();
 };
 
@@ -163,8 +170,8 @@ AudioSprite.prototype.inputSilence = function( duration, options, callback ) {
 	options = options || {};
 	options.name = options.name || 'silence';
 	this._json.spritemap[ options.name ] = {
-		start: this._offsetCursor,
-		end: this._offsetCursor + duration,
+		start: this._getBufferPositionInTime(),
+		end: this._getBufferPositionInTime() + duration,
 		loop: true
 	};
 	if (!options.autoplay) {
@@ -189,6 +196,7 @@ AudioSprite.prototype.input = function( stream, options, callback ) {
 	options = options || {};
 	options.name = options.name || 'default';
 	var that = this;
+	var startTime = this._getBufferPositionInTime();
 	async.waterfall( [
 			function( cb ) {
 				if ( !that._ffmpegVersionChecked ) {
@@ -205,8 +213,7 @@ AudioSprite.prototype.input = function( stream, options, callback ) {
 				//ffmpeg.stderr.pipe( process.stdout );
 				stream.pipe( ffmpeg.stdin );
 				ffmpeg.stdout.on( 'data', function( data ) {
-					length += data.length;
-					that._appendToBuffer( data );
+					length += that._appendToBuffer( data );
 				} );
 				ffmpeg.on('exit', function(code, signal) {
 					if (code) {
@@ -220,16 +227,17 @@ AudioSprite.prototype.input = function( stream, options, callback ) {
 				if (!options.autoplay) {
 					that._json.autoplay = options.name;
 				}
-				var originalDuration = bytesWritten / that._options.sampleRate / that._options.channelCount / 2;
+
+				var currentTime = that._getBufferPositionInTime();
+				var originalDuration = currentTime - startTime;
 				var extraDuration = Math.max(0, that._options.minTrackLength - originalDuration);
 				var duration = originalDuration + extraDuration;
 				that._json.spritemap[options.name] = {
-					start: that._offsetCursor,
-					end: that._offsetCursor + duration,
+					start: startTime,
+					end: startTime + duration,
 					loop: options.autoplay || options.loop || false
 				};
-				that._offsetCursor += originalDuration;
-				that._appendSilence(extraDuration + Math.ceil(duration) - duration + that._options.trackGap, cb);
+				that._appendSilence(extraDuration + Math.ceil(currentTime) - currentTime + that._options.trackGap, cb);
 			}
 		],
 		callback
