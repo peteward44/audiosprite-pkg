@@ -326,6 +326,7 @@ AudioSprite.prototype.output = function( stream, options, callback ) {
 		that._json.resources.push( options.name );
 		callback();
 	});
+	return proc;
 };
 
 
