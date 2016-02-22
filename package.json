@@ -1,6 +1,6 @@
 {
   "name": "audiosprite-pkg",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Concat small audio files into single file and export in many formats.",
   "keywords": [
     "audio",
@@ -21,22 +21,17 @@
   "engines": {
     "node": ">= 0.10.0"
   },
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "https://github.com/peteward44/audiosprite-pkg/blob/master/LICENSE"
-    }
-  ],
   "readmeFilename": "README.md",
   "bugs": {
     "url": "https://github.com/peteward44/audiosprite-pkg/issues"
   },
   "dependencies": {
-    "async": "^0.9.0",
-    "fs-extra": "^0.18.0",
+    "async": "^1.5.2",
+    "fs-extra": "^0.26.5",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
     "mocha": "^2.2.1"
-  }
+  },
+  "license": "MIT"
 }

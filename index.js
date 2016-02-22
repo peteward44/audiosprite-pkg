@@ -288,6 +288,7 @@ AudioSprite.prototype._inputFile = function( file, options, callback ) {
  * @param {Object=} options Options object
  * @param {string} options.name Name to use in the output JSON for the sprite
  * @param {string} options.format What format the file should be outputted as, supports: aiff,caf,wav,ac3,mp3,mp4,m4a,ogg. Defaults to 'ogg'
+ * @param {Array} options.rawArguments Raw arguments to pass to FFMpeg. Use with warning: You must specify the same sampleRate and channelCount passed into the constructor's options for the input parameters, you must specify -i pipe:0 as the input stream and pipe: for the output. Remember for FFMpeg the order the arguments are specified matters. So for example { rawArguments: [ '-y', '-ar', sampleRate, '-ac', channelCount, '-f', 's16le', '-i', 'pipe:0', '-ar', sampleRate, '-f', 'mp3', 'pipe:' ] }
  * @param {function=} callback Complete callback
  */
 AudioSprite.prototype.output = function( stream, options, callback ) {
@@ -303,7 +304,18 @@ AudioSprite.prototype.output = function( stream, options, callback ) {
 	if ( !opt ) {
 		throw new Error( "Unsupported output format '" + format + "'" );
 	}
-	var proc = safeSpawn(this._options.ffmpeg,['-y', '-ar', this._options.sampleRate, '-ac', this._options.channelCount, '-f', 's16le', '-i', 'pipe:0'].concat(opt).concat('pipe:'));
+	var args;
+	if ( !Array.isArray( options.rawArguments ) ) {
+		args = ['-y', '-ar', this._options.sampleRate, '-ac', this._options.channelCount, '-f', 's16le', '-i', 'pipe:0'].concat(opt).concat('pipe:');
+	} else {
+		// raw custom FFMpeg arguments passed in - user must make sure this contains -i pipe:0 and pipe: to define input and output pipes!
+		var containsInputArgs = ( options.rawArguments.indexOf( '-i' ) >= 0 && options.rawArguments.indexOf( 'pipe:0' ) >= 0 ) || options.rawArguments.indexOf( '-i pipe:0' ) >= 0;
+		if ( !containsInputArgs || options.rawArguments.indexOf( 'pipe:' ) < 0 ) {
+			throw new Error( 'Invalid rawArguments option: Always include "-i pipe:0" and "pipe:" arguments for audiosprite-pkg to work correctly! (See README.md for more information)' );
+		}
+		args = options.rawArguments;
+	}
+	var proc = safeSpawn( this._options.ffmpeg, args );
 	proc.stdout.pipe( stream );
 //		proc.stderr.pipe( process.stdout );
 	proc.stdin.end( this._buffer );

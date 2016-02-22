@@ -164,6 +164,7 @@ Outputs the sprite to a stream.
 | [options] | <code>Object</code> | Options object |
 | options.name | <code>string</code> | Name to use in the output JSON for the sprite |
 | options.format | <code>string</code> | What format the file should be outputted as, supports: aiff,caf,wav,ac3,mp3,mp4,m4a,ogg. Defaults to 'ogg' |
+| options.rawArguments | <code>Array</code> | Raw arguments to pass to FFMpeg. Use with warning: You must specify the same sampleRate and channelCount passed into the constructor's options for the input parameters, you must specify -i pipe:0 as the input stream and pipe: for the output. Remember for FFMpeg the order the arguments are specified matters. So for example { rawArguments: [ '-y', '-ar', sampleRate, '-ac', channelCount, '-f', 's16le', '-i', 'pipe:0', '-ar', sampleRate, '-f', 'mp3', 'pipe:' ] } |
 | [callback] | <code>function</code> | Complete callback |
 
 <a name="AudioSprite#outputFile"></a>
