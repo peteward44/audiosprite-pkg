@@ -51,9 +51,7 @@ async.waterfall( [
 		},
 		function( cb ) {
 			// Output can be called as many times as necessary to generate different formats,
-			// and can also output to a stream
-			var stream = fs.createWriteStream( 'mySprite.ac3' );
-			as.output( stream, { format: 'ac3' }, cb );
+			as.outputFile( 'mySprite.ac3', { format: 'ac3' }, cb );
 		},
 		function( cb ) {
 			// Output JSON manifest file
@@ -84,7 +82,6 @@ async.waterfall( [
   * [.inputSilence(duration, [options], [callback])](#AudioSprite#inputSilence)
   * [.input(stream, [options], [callback])](#AudioSprite#input)
   * [.inputFile(file, [options], [callback])](#AudioSprite#inputFile)
-  * [.output(stream, [options], [callback])](#AudioSprite#output)
   * [.outputFile(file, [options], [callback])](#AudioSprite#outputFile)
   * [.outputJson(format)](#AudioSprite#outputJson) ? <code>Object</code>
   * [.outputJsonFile(file, format)](#AudioSprite#outputJsonFile) ? <code>Object</code>
@@ -150,21 +147,6 @@ Input a track from a file into the sprite.
 | options.name | <code>string</code> | Name to use in the output JSON for the track |
 | options.autoplay | <code>boolean</code> | Whether this should be marked to autoplay in the output JSON |
 | options.loop | <code>boolean</code> | Whether this should be marked to loop in the output JSON |
-| [callback] | <code>function</code> | Complete callback |
-
-<a name="AudioSprite#output"></a>
-### audioSprite.output(stream, [options], [callback])
-Outputs the sprite to a stream.
-
-**Kind**: instance method of <code>[AudioSprite](#AudioSprite)</code>  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| stream | <code>Object</code> | Output stream |
-| [options] | <code>Object</code> | Options object |
-| options.name | <code>string</code> | Name to use in the output JSON for the sprite |
-| options.format | <code>string</code> | What format the file should be outputted as, supports: aiff,caf,wav,ac3,mp3,mp4,m4a,ogg. Defaults to 'ogg' |
-| options.rawArguments | <code>Array</code> | Raw arguments to pass to FFMpeg. Use with warning: You must specify the same sampleRate and channelCount passed into the constructor's options for the input parameters, you must specify -i pipe:0 as the input stream and pipe: for the output. Remember for FFMpeg the order the arguments are specified matters. So for example { rawArguments: [ '-y', '-ar', sampleRate, '-ac', channelCount, '-f', 's16le', '-i', 'pipe:0', '-ar', sampleRate, '-f', 'mp3', 'pipe:' ] } |
 | [callback] | <code>function</code> | Complete callback |
 
 <a name="AudioSprite#outputFile"></a>
