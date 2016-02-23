@@ -1,6 +1,6 @@
 {
   "name": "audiosprite-pkg",
-  "version": "0.0.6",
+  "version": "1.0.0",
   "description": "Concat small audio files into single file and export in many formats.",
   "keywords": [
     "audio",
@@ -34,7 +34,8 @@
     "mocha": "^2.2.1"
   },
   "ignore": [
-	"test"
+	"test",
+	"out"
   ],
   "license": "MIT"
 }

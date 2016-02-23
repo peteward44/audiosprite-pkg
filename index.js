@@ -4,6 +4,7 @@
 // Modified version of audiosprite v0.4.0 tool so we don't have to use the CLI and can use a local version of ffmpeg
 var fs = require('fs-extra');
 var _ = require('underscore');
+var os = require( 'os' );
 var path = require('path');
 var async = require('async');
 var spawn = require('child_process').spawn;
@@ -142,7 +143,7 @@ AudioSprite.prototype._getFormatArgs = function( format ) {
 		ac3: ['-acodec', 'ac3', '-ab', this._options.bitRate + 'k', '-f', 'ac3' ],
 		mp3: ['-ar', this._options.sampleRate, '-f', 'mp3'],
 		mp4: ['-ab', this._options.bitRate + 'k', '-f', 'mpegts' ],
-		m4a: ['-ab', this._options.bitRate + 'k', '-f', 'mpegts' ],
+		m4a: ['-ab', this._options.bitRate + 'k', '-c:a', 'aac', '-strict', '-2', '-f', 'mp4' ],
 		ogg: ['-acodec', 'libvorbis', '-f', 'ogg', '-ab', this._options.bitRate + 'k']
 	};
 	if (this._options.VBR >= 0 && this._options.VBR <= 9) {
@@ -292,41 +293,7 @@ AudioSprite.prototype._inputFile = function( file, options, callback ) {
  * @param {function=} callback Complete callback
  */
 AudioSprite.prototype.output = function( stream, options, callback ) {
-	if ( typeof options === 'function' ) {
-		callback = options;
-		options = {};
-	}
-	options = options || {};
-	options.name = options.name || 'default';
-	var format = options.format || 'ogg';
-	var that = this;
-	var opt = this._getFormatArgs( format );
-	if ( !opt ) {
-		throw new Error( "Unsupported output format '" + format + "'" );
-	}
-	var args;
-	if ( !Array.isArray( options.rawArguments ) ) {
-		args = ['-y', '-ar', this._options.sampleRate, '-ac', this._options.channelCount, '-f', 's16le', '-i', 'pipe:0'].concat(opt).concat('pipe:');
-	} else {
-		// raw custom FFMpeg arguments passed in - user must make sure this contains -i pipe:0 and pipe: to define input and output pipes!
-		var containsInputArgs = ( options.rawArguments.indexOf( '-i' ) >= 0 && options.rawArguments.indexOf( 'pipe:0' ) >= 0 ) || options.rawArguments.indexOf( '-i pipe:0' ) >= 0;
-		if ( !containsInputArgs || options.rawArguments.indexOf( 'pipe:' ) < 0 ) {
-			throw new Error( 'Invalid rawArguments option: Always include "-i pipe:0" and "pipe:" arguments for audiosprite-pkg to work correctly! (See README.md for more information)' );
-		}
-		args = options.rawArguments;
-	}
-	var proc = safeSpawn( this._options.ffmpeg, args );
-	proc.stdout.pipe( stream );
-//		proc.stderr.pipe( process.stdout );
-	proc.stdin.end( this._buffer );
-	proc.on('exit', function(code, signal) {
-		if (code) {
-			return callback({ msg: 'Error exporting file', format: format, retcode: code, signal: signal });
-		}
-		that._json.resources.push( options.name );
-		callback();
-	});
-	return proc;
+	throw new Error( "AudioSprite.output method is deprecated - use outputFile() instead" );
 };
 
 
@@ -369,7 +336,64 @@ AudioSprite.prototype._outputFile = function( file, options, callback ) {
 		}
 	}
 	fs.ensureDir( path.dirname( file ) );
-	return this.output( fs.createWriteStream( file ), options, callback );
+	if ( typeof options === 'function' ) {
+		callback = options;
+		options = {};
+	}
+	options = options || {};
+	options.name = options.name || 'default';
+	var format = options.format || 'ogg';
+	var that = this;
+	var tempfilename = path.join( os.tmpdir(), 'wav_' + Math.floor( Math.random() * 9999999 ) + '.wav' );
+
+	async.waterfall( [
+			function( cb ) {
+				var args = [ '-y', '-ar', that._options.sampleRate, '-ac', that._options.channelCount, '-f', 's16le', '-i', 'pipe:0', '-f', 'wav', tempfilename ];
+				var proc = safeSpawn( that._options.ffmpeg, args );
+				if ( options.outputStderr ) {
+					proc.stderr.pipe( process.stderr );
+				}
+				proc.stdin.end( that._buffer );
+				proc.on('exit', function(code, signal) {
+					if (code) {
+						return cb({ msg: 'Error exporting file', format: format, retcode: code, signal: signal });
+					}
+					that._json.resources.push( options.name );
+					return cb();
+				});
+			},
+			function( cb ) {			
+				var opt;
+				if ( !Array.isArray( options.rawArguments ) ) {
+					opt = that._getFormatArgs( format );
+					if ( !opt ) {
+						throw new Error( "Unsupported output format '" + format + "'" );
+					}
+				} else {
+					opt = options.rawArguments;
+				}
+				var args = ['-y', '-i', tempfilename].concat(opt).concat( [ file ] );
+				var proc = safeSpawn( that._options.ffmpeg, args );
+				if ( options.outputStderr ) {
+					proc.stderr.pipe( process.stderr );
+				}
+				proc.on('exit', function(code, signal) {
+					if (code) {
+						return cb({ msg: 'Error exporting file', format: format, retcode: code, signal: signal });
+					}
+					that._json.resources.push( options.name );
+					return cb();
+				});
+			}
+		],
+		function( err ) {
+			try {
+				fs.removeSync( tempfilename );
+			}
+			catch( err2 ) {}
+			callback( err );
+		}
+	);
 };
 
 
