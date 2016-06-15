@@ -172,7 +172,7 @@ Outputs the JSON mainfest in the given format
 
 | Param | Type | Description |
 | --- | --- | --- |
-| format | <code>string</code> | Format of the output JSON file (jukebox, howler, createjs). Defaults to jukebox |
+| format | <code>string</code> | Format of the output JSON file (jukebox, howler, howler2, createjs). Defaults to jukebox |
 
 <a name="AudioSprite#outputJsonFile"></a>
 ### audioSprite.outputJsonFile(file, format) ? <code>Object</code>
@@ -184,5 +184,5 @@ Outputs the JSON manifest to file
 | Param | Type | Description |
 | --- | --- | --- |
 | file | <code>Object</code> | Output file |
-| format | <code>string</code> | Format of the output JSON file (jukebox, howler, createjs). Defaults to jukebox |
+| format | <code>string</code> | Format of the output JSON file (jukebox, howler, howler2, createjs). Defaults to jukebox |
 
