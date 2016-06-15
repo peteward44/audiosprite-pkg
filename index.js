@@ -358,7 +358,6 @@ AudioSprite.prototype._outputFile = function( file, options, callback ) {
 					if (code) {
 						return cb({ msg: 'Error exporting file', format: format, retcode: code, signal: signal });
 					}
-					that._json.resources.push( options.name );
 					return cb();
 				});
 			},
@@ -407,6 +406,17 @@ AudioSprite.prototype.outputJson = function( format ) {
 	switch (format) {
 		case 'howler':
 			finalJson.urls = [].concat(this._json.resources);
+			finalJson.sprite = {};
+			for (sn in this._json.spritemap) {
+				spriteInfo = this._json.spritemap[sn];
+				finalJson.sprite[sn] = [spriteInfo.start * 1000, (spriteInfo.end - spriteInfo.start) * 1000];
+				if (spriteInfo.loop) {
+					finalJson.sprite[sn].push(true);
+				}
+			}
+		break;
+		case 'howler2':
+			finalJson.src = [].concat(this._json.resources);
 			finalJson.sprite = {};
 			for (sn in this._json.spritemap) {
 				spriteInfo = this._json.spritemap[sn];
