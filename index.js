@@ -129,7 +129,7 @@ AudioSprite.prototype._appendToBuffer = function( data ) {
 AudioSprite.prototype._appendSilence = function(duration, cb) {
 	var size = Math.round(this._options.sampleRate * 2 * this._options.channelCount * duration);
 	this._growBuffer( size );
-	this._buffer.fill( 0, this._bufferPos, this._bufferPos + size );
+	this._buffer.fill( 0, this._bufferPos, this._bufferPos + size - 1 );
 	this._bufferPos += size;
 	cb();
 };
@@ -208,6 +208,7 @@ AudioSprite.prototype.input = function( stream, options, callback ) {
 				}
 			},
 			function( cb ) {
+				var failed = false;
 				var length = 0;
 				var wavArgs = ['-ar', that._options.sampleRate, '-ac', that._options.channelCount, '-f', 's16le'];
 				var ffmpeg = safeSpawn(that._options.ffmpeg, [ '-i', 'pipe:0' ].concat(wavArgs).concat('pipe:'));
@@ -218,13 +219,21 @@ AudioSprite.prototype.input = function( stream, options, callback ) {
 				} );
 				ffmpeg.on('exit', function(code, signal) {
 					if (code) {
-						cb( { msg: 'File could not be added', file: options.name, retcode: code, signal: signal }, length );
-					} else {
-						cb( null, length );
+						failed = true;
+						cb( { msg: 'File could not be added', file: options.name, retcode: code, signal: signal } );
+					}
+				});
+				ffmpeg.stdout.on('finish', function() {
+					if ( !failed ) {
+						cb();
 					}
 				});
 			},
-			function( bytesWritten, cb ) {
+			function( cb ) {
+				// Bug fix: Wait for any remaining 'data' calls for stdout on the process to complete - belts & braces
+				setTimeout( cb, 10 );
+			},
+			function( cb ) {
 				if (!options.autoplay) {
 					that._json.autoplay = options.name;
 				}
