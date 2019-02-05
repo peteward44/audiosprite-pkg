@@ -84,7 +84,7 @@ var AudioSprite = function( options ) {
 	this._options.bufferInitialSize = isFinite( this._options.bufferInitialSize ) ? this._options.bufferInitialSize : (300 * 1024);
 	this._options.bufferIncrementSize = isFinite( this._options.bufferIncrementSize ) ? this._options.bufferIncrementSize : (100 * 1024);
 	
-	this._buffer = new Buffer( this._options.bufferInitialSize );
+	this._buffer = Buffer.alloc( this._options.bufferInitialSize );
 	this._bufferPos = 0;
 };
 
@@ -100,7 +100,7 @@ AudioSprite.prototype._growBuffer = function( additional ) {
 		var extraRequired = additional - spaceAvailable;
 		var chunksRequired = Math.floor( extraRequired / this._options.bufferIncrementSize ) + 1;
 		var newSize = ( this._buffer ? this._buffer.length : 0 ) + ( chunksRequired * this._options.bufferIncrementSize );
-		var newBuffer = new Buffer( newSize );
+		var newBuffer = Buffer.alloc( newSize );
 		if ( this._buffer ) {
 			this._buffer.copy( newBuffer, 0, 0, this._bufferPos );
 		}
@@ -140,16 +140,16 @@ AudioSprite.prototype._getFormatArgs = function( format ) {
 		aiff: ['-ar', this._options.sampleRate, '-ac', this._options.channelCount, '-f', 'aiff'],
 		caf: ['-ar', this._options.sampleRate, '-ac', this._options.channelCount, '-f', 'caf'],
 		wav: ['-ar', this._options.sampleRate, '-ac', this._options.channelCount, '-f', 'wav'],
-		ac3: ['-acodec', 'ac3', '-ab', this._options.bitRate + 'k', '-f', 'ac3' ],
+		ac3: ['-acodec', 'ac3', '-b:a', this._options.bitRate + 'k', '-f', 'ac3' ],
 		mp3: ['-ar', this._options.sampleRate, '-f', 'mp3'],
-		mp4: ['-ab', this._options.bitRate + 'k', '-f', 'mpegts' ],
-		m4a: ['-ab', this._options.bitRate + 'k', '-c:a', 'aac', '-strict', '-2', '-f', 'mp4' ],
-		ogg: ['-acodec', 'libvorbis', '-f', 'ogg', '-ab', this._options.bitRate + 'k']
+		mp4: ['-b:a', this._options.bitRate + 'k', '-f', 'mpegts' ],
+		m4a: ['-b:a', this._options.bitRate + 'k', '-c:a', 'aac', '-strict', '-2', '-f', 'mp4' ],
+		ogg: ['-acodec', 'libvorbis', '-f', 'ogg', '-b:a', this._options.bitRate + 'k']
 	};
 	if (this._options.VBR >= 0 && this._options.VBR <= 9) {
 		formats.mp3 = formats.mp3.concat(['-aq', this._options.VBR]);
 	} else {
-		formats.mp3 = formats.mp3.concat(['-ab', this._options.bitRate + 'k']);
+		formats.mp3 = formats.mp3.concat(['-b:a', this._options.bitRate + 'k']);
 	}
 	var args = formats[ format ];
 	return args;
@@ -164,6 +164,18 @@ AudioSprite.prototype._getFormatArgs = function( format ) {
  * @param {function=} callback Complete callback
  */
 AudioSprite.prototype.inputSilence = function( duration, options, callback ) {
+	var that = this;
+	return new Promise( function( resolve, reject ) {
+		that._inputSilence( duration, options, function( err ) {
+			err ? reject( err ) : resolve();
+			if ( callback ) {
+				callback( err );
+			}
+		} );
+	} );
+};
+
+AudioSprite.prototype._inputSilence = function( duration, options, callback ) {
 	if ( typeof options === 'function' ) {
 		callback = options;
 		options = {};
@@ -190,12 +202,26 @@ AudioSprite.prototype.inputSilence = function( duration, options, callback ) {
  * @param {function=} callback Complete callback
  */
 AudioSprite.prototype.input = function( stream, options, callback ) {
+	var that = this;
+	return new Promise( function( resolve, reject ) {
+		that._input( stream, options, function( err ) {
+			err ? reject( err ) : resolve();
+			if ( callback ) {
+				callback( err );
+			}
+		} );
+	} );
+};
+
+
+AudioSprite.prototype._input = function( stream, options, callback ) {
 	if ( typeof options === 'function' ) {
 		callback = options;
 		options = {};
 	}
 	options = options || {};
 	options.name = options.name || 'default';
+
 	var that = this;
 	var startTime = this._getBufferPositionInTime();
 	async.waterfall( [
@@ -221,10 +247,7 @@ AudioSprite.prototype.input = function( stream, options, callback ) {
 					if (code) {
 						failed = true;
 						cb( { msg: 'File could not be added', file: options.name, retcode: code, signal: signal } );
-					}
-				});
-				ffmpeg.stdout.on('finish', function() {
-					if ( !failed ) {
+					} else {
 						cb();
 					}
 				});
@@ -264,6 +287,18 @@ AudioSprite.prototype.input = function( stream, options, callback ) {
  * @param {function=} callback Complete callback
  */
 AudioSprite.prototype.inputFile = function( file, options, callback ) {
+	var that = this;
+	return new Promise( function( resolve, reject ) {
+		that._inputFile( file, options, function( err ) {
+			err ? reject( err ) : resolve();
+			if ( callback ) {
+				callback( err );
+			}
+		} );
+	} );
+};
+
+AudioSprite.prototype._inputFile = function( file, options, callback ) {
 	if ( typeof options === 'function' ) {
 		callback = options;
 		options = {};
@@ -274,37 +309,23 @@ AudioSprite.prototype.inputFile = function( file, options, callback ) {
 		return async.eachSeries(
 			file,
 			function( sfile, cb ) {
-				that._inputFile( sfile, _.extend( {}, options ), cb );
+				that._inputFileIndividual( sfile, _.extend( {}, options ), cb );
 			},
 			callback
 		);
 	} else {
-		return this._inputFile( file, options, callback );
+		return this._inputFileIndividual( file, options, callback );
 	}
 };
 
 
-AudioSprite.prototype._inputFile = function( file, options, callback ) {
+AudioSprite.prototype._inputFileIndividual = function( file, options, callback ) {
 	options.name = options.name || path.basename( file, path.extname( file ) );
 	if ( !fs.existsSync(file) ) {
 		return callback({ msg: 'File does not exist', file: file } );
 	}
 	return this.input( fs.createReadStream( file ), options, callback );
 };
-
-
-/** Outputs the sprite to a stream.
- * @param {Object} stream Output stream
- * @param {Object=} options Options object
- * @param {string} options.name Name to use in the output JSON for the sprite
- * @param {string} options.format What format the file should be outputted as, supports: aiff,caf,wav,ac3,mp3,mp4,m4a,ogg. Defaults to 'ogg'
- * @param {Array} options.rawArguments Raw arguments to pass to FFMpeg. Use with warning: You must specify the same sampleRate and channelCount passed into the constructor's options for the input parameters, you must specify -i pipe:0 as the input stream and pipe: for the output. Remember for FFMpeg the order the arguments are specified matters. So for example { rawArguments: [ '-y', '-ar', sampleRate, '-ac', channelCount, '-f', 's16le', '-i', 'pipe:0', '-ar', sampleRate, '-f', 'mp3', 'pipe:' ] }
- * @param {function=} callback Complete callback
- */
-AudioSprite.prototype.output = function( stream, options, callback ) {
-	throw new Error( "AudioSprite.output method is deprecated - use outputFile() instead" );
-};
-
 
 /** Outputs the sprite to a file.
  * @param {string|Array} file Output file or array of output files
@@ -314,6 +335,18 @@ AudioSprite.prototype.output = function( stream, options, callback ) {
  * @param {function=} callback Complete callback
  */
 AudioSprite.prototype.outputFile = function( file, options, callback ) {
+	var that = this;
+	return new Promise( function( resolve, reject ) {
+		that._outputFile( file, options, function( err ) {
+			err ? reject( err ) : resolve();
+			if ( callback ) {
+				callback( err );
+			}
+		} );
+	} );
+};
+
+AudioSprite.prototype._outputFile = function( file, options, callback ) {
 	if ( typeof options === 'function' ) {
 		callback = options;
 		options = {};
@@ -324,17 +357,17 @@ AudioSprite.prototype.outputFile = function( file, options, callback ) {
 		return async.eachSeries(
 			file,
 			function( sfile, cb ) {
-				that._outputFile( sfile, _.extend( {}, options ), cb );
+				that._outputFileIndividual( sfile, _.extend( {}, options ), cb );
 			},
 			callback
 		);
 	} else {
-		return this._outputFile( file, options, callback );
+		return this._outputFileIndividual( file, options, callback );
 	}
 };
 
 
-AudioSprite.prototype._outputFile = function( file, options, callback ) {
+AudioSprite.prototype._outputFileIndividual = function( file, options, callback ) {
 
 	options.name = options.name || path.basename( file );
 	if ( !options.format ) {
@@ -357,15 +390,20 @@ AudioSprite.prototype._outputFile = function( file, options, callback ) {
 
 	async.waterfall( [
 			function( cb ) {
+				var stderr = '';
 				var args = [ '-y', '-ar', that._options.sampleRate, '-ac', that._options.channelCount, '-f', 's16le', '-i', 'pipe:0', '-f', 'wav', tempfilename ];
 				var proc = safeSpawn( that._options.ffmpeg, args );
-				if ( options.outputStderr ) {
-					proc.stderr.pipe( process.stderr );
-				}
+				proc.stderr.on( 'data', function( data ) {
+					if ( options.outputStderr ) {
+						console.error( data );
+					}
+					stderr += '' + data;
+				} );
 				proc.stdin.end( that._buffer );
 				proc.on('exit', function(code, signal) {
 					if (code) {
-						return cb({ msg: 'Error exporting file', format: format, retcode: code, signal: signal });
+						const cmd = that._options.ffmpeg + ' ' + args.join( ' ' );
+						return cb({ msg: 'Error exporting file', format: format, retcode: code, signal: signal, cmd: cmd, stderr: stderr });
 					}
 					return cb();
 				});
@@ -380,14 +418,19 @@ AudioSprite.prototype._outputFile = function( file, options, callback ) {
 				} else {
 					opt = options.rawArguments;
 				}
+				var stderr = '';
 				var args = ['-y', '-i', tempfilename].concat(opt).concat( [ file ] );
 				var proc = safeSpawn( that._options.ffmpeg, args );
-				if ( options.outputStderr ) {
-					proc.stderr.pipe( process.stderr );
-				}
+				proc.stderr.on( 'data', function( data ) {
+					if ( options.outputStderr ) {
+						console.error( data );
+					}
+					stderr += '' + data;
+				} );
 				proc.on('exit', function(code, signal) {
 					if (code) {
-						return cb({ msg: 'Error exporting file', format: format, retcode: code, signal: signal });
+						const cmd = that._options.ffmpeg + ' ' + args.join( ' ' );
+						return cb({ msg: 'Error exporting file', format: format, retcode: code, signal: signal, cmd: cmd, stderr: stderr });
 					}
 					that._json.resources.push( options.name );
 					return cb();
@@ -460,10 +503,27 @@ AudioSprite.prototype.outputJson = function( format ) {
  * @param {string} format Format of the output JSON file (jukebox, howler, createjs). Defaults to jukebox
  * @returns {Object} JSON manifest
  */
-AudioSprite.prototype.outputJsonFile = function( file, format ) {
+AudioSprite.prototype.outputJsonFile = function( file, format, callback ) {
+	if ( typeof format === 'function' ) {
+		callback = format;
+		format = undefined;
+	}
+	var that = this;
+	return new Promise( function( resolve, reject ) {
+		that._outputJsonFile( file, format, function( err, json ) {
+			err ? reject( err ) : resolve( json );
+			if ( callback ) {
+				callback( err, json );
+			}
+		} );
+	} );
+};
+
+AudioSprite.prototype._outputJsonFile = function( file, format, cb ) {
 	var obj = this.outputJson( format );
-	fs.writeFileSync( file, JSON.stringify( obj, null, '\t' ) );
-	return obj;
+	fs.writeFile( file, JSON.stringify( obj, null, '\t' ), function( err ) {
+		cb( err, obj );
+	} );
 };
 
 

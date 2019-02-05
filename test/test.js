@@ -45,8 +45,7 @@ function simpleOutputFormatTest( format, done, outputArgs, outputName ) {
 				as.outputFile( [ path.join( g_outputDir, outputName + '1.' + format ), path.join( g_outputDir, outputName + '2.' + format )], outputArgs, cb );
 			},
 			function( cb ) {
-				as.outputJsonFile( outputJsonFile );
-				cb();
+				as.outputJsonFile( outputJsonFile, cb );
 			}
 		],
 		function( err ) {
@@ -59,38 +58,93 @@ function simpleOutputFormatTest( format, done, outputArgs, outputName ) {
 }
 
 
+function simpleOutputFormatTestPromise( format, outputArgs, outputName ) {
+	outputName = outputName || 'output';
+	var outputFile = path.join( g_outputDir, outputName + '.' + format );
+	var outputJsonFile = path.join( g_outputDir, outputName + '_' + format + '.json' );
+	
+	var as = new AudioSprite( { ffmpeg: ffmpegPath } );
+	
+	return as.inputFile( path.join( g_fixturesPath, 'ogg/FireBallWhoosh0.ogg' ) )
+		.then( function() {
+			return as.inputFile( path.join( g_fixturesPath, 'ogg/ReelStop.ogg' ) );
+		} )
+		.then( function() {
+			return as.inputFile( path.join( g_fixturesPath, 'ogg/Symbol0.ogg' ) );
+		} )
+		.then( function() {
+			return as.inputFile( [ path.join( g_fixturesPath, 'ogg/ReelStop.ogg' ), path.join( g_fixturesPath, 'ogg/Symbol0.ogg' ) ] );
+		} )
+		.then( function() {
+			return as.outputFile( outputFile, outputArgs );
+		} )
+		.then( function() {
+			return as.outputFile( [ path.join( g_outputDir, outputName + '1.' + format ), path.join( g_outputDir, outputName + '2.' + format )], outputArgs );
+		} )
+		.then( function() {
+			return as.outputJsonFile( outputJsonFile );
+		} )
+		.then( function() {
+			assert.equal( fs.existsSync( outputFile ), true, 'Output file exists' );
+			assert.equal( fs.existsSync( outputJsonFile ), true, 'Output JSON file exists' );
+		} );
+}
+
+
+const formatsToTest = [
+	'ogg', 'mp3', 'mp4', 'm4a', 'wav', 'ac3', 'aiff', 'caf'
+];
+
+
 describe('audiosprite-pkg', function() {
 	this.timeout(10 * 60 * 1000 * 1000);
 	describe('different output formats individually', function() {
-		it( 'ogg', function( done ) {
-			simpleOutputFormatTest( 'ogg', done );
-		});
-		it( 'mp3', function( done ) {
-			simpleOutputFormatTest( 'mp3', done );
-		});
-		it( 'mp4', function( done ) {
-			simpleOutputFormatTest( 'mp4', done );
-		});
-		it( 'm4a', function( done ) {
-			simpleOutputFormatTest( 'm4a', done );
-		});
-		it( 'wav', function( done ) {
-			simpleOutputFormatTest( 'wav', done );
-		});
-		it( 'ac3', function( done ) {
-			simpleOutputFormatTest( 'ac3', done );
-		});	
-		it( 'aiff', function( done ) {
-			simpleOutputFormatTest( 'aiff', done );
-		});
-		it( 'caf', function( done ) {
-			simpleOutputFormatTest( 'caf', done );
-		});
 		
-		
+		for ( let i=0; i<formatsToTest.length; ++i ) {
+			const format = formatsToTest[i];
+			it( format + ' callback API', function( done ) {
+				simpleOutputFormatTest( format, done );
+			});
+			
+			it( format + ' promise API', function() {
+				return simpleOutputFormatTestPromise( format );
+			});
+		}
+
 		it( 'mp3 - using rawArguments option to specify custom behaviour', function( done ) {
-			simpleOutputFormatTest( 'mp3', { rawArguments: [ '-y', '-ar', 44100, '-ac', 1, '-f', 's16le', '-i', 'pipe:0', '-ar', 44100, '-f', 'mp3', 'pipe:' ] }, done, 'custommp3' );
+			simpleOutputFormatTest( 'mp3', done, { rawArguments: [ '-ar', 44100, '-ac', 1, '-f', 's16le' ] }, 'custommp3' );
 		});
+		
+		it( 'specify bitRate option to replicate issue #2', function( done ) {
+			var asOpt = {
+				bitRate : 240,
+				ffmpeg: ffmpegPath
+			},
+			asInOpt = {
+			},
+			asOutOpt = {
+			},
+			files = [
+				path.join( g_fixturesPath, 'ogg/FireBallWhoosh0.ogg' ),
+				path.join( g_fixturesPath, 'ogg/Symbol0.ogg' )
+			],
+			as = new AudioSprite(asOpt);
+			as.inputFile(files, asInOpt, (err) => {
+				if(err) {
+					console.error(err);
+					return done( err );
+				}
+				console.log( path.join( g_outputDir, 'test.ogg' ) )
+				as.outputFile( path.join( g_outputDir, 'test.ogg' ), asOutOpt, (err) => {
+					if(err) {
+						console.error(err);
+						return done( err );
+					}
+					as.outputJsonFile( path.join( g_outputDir, 'test.json' ), "jukebox", done );
+				})
+			});
+		});
+		
 	});
 });
 
