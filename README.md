@@ -8,6 +8,8 @@ This allows better integration with grunt / gulp and other build systems.
 
 Uses buffer streams to prevent creation of temporary files like the original.
 
+v2.0.0 of audiosprite-pkg now returns promises for each API call, making the callbacks entirely optional.
+
 ```
 npm install audiosprite-pkg
 ```
@@ -22,9 +24,30 @@ as.inputFile( 'inputFile.ogg', function( err ) {
 	// .outputFile can also be called many times with different formats
 	as.outputFile( 'output.mp3', { format: 'mp3' }, function( err ) {
 		// output the final JSON file - this should be called once all other operations have completed
-		as.outputJsonFile( 'output.json' );
+		as.outputJsonFile( 'output.json', function( err ) {
+			// all done!
+		} );
 	} );
 } );
+```
+
+**Example using Promise API introduced in v2.0.0**
+```
+	const as = new AudioSprite();
+	
+	return as.inputFile( 'input1.wav' )
+		.then( function() {
+			return as.inputFile( 'input2.wav' );
+		} )
+		.then( function() {
+			return as.inputFile( [ 'input3.wav', 'input4.wav' ] );
+		} )
+		.then( function() {
+			return as.outputFile( 'output.wav' );
+		} )
+		.then( function() {
+			return as.outputJsonFile( 'output.json' );
+		} );
 ```
 
 **Comprehensive example using async.js**
@@ -55,8 +78,7 @@ async.waterfall( [
 		},
 		function( cb ) {
 			// Output JSON manifest file
-			as.outputJsonFile( 'mysprite.json' );
-			cb();
+			as.outputJsonFile( 'mysprite.json', cb );
 		}
 		function( cb ) {
 			// You can also call outputJson() to just get the manifest object without writing it to file.
@@ -175,7 +197,7 @@ Outputs the JSON mainfest in the given format
 | format | <code>string</code> | Format of the output JSON file (jukebox, howler, howler2, createjs). Defaults to jukebox |
 
 <a name="AudioSprite#outputJsonFile"></a>
-### audioSprite.outputJsonFile(file, format) ? <code>Object</code>
+### audioSprite.outputJsonFile(file, format, [callback]) ? <code>Object</code>
 Outputs the JSON manifest to file
 
 **Kind**: instance method of <code>[AudioSprite](#AudioSprite)</code>  
@@ -185,4 +207,5 @@ Outputs the JSON manifest to file
 | --- | --- | --- |
 | file | <code>Object</code> | Output file |
 | format | <code>string</code> | Format of the output JSON file (jukebox, howler, howler2, createjs). Defaults to jukebox |
+| [callback] | <code>function</code> | Complete callback |
 
