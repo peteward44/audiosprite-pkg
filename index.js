@@ -10,6 +10,7 @@ var async = require('async');
 var spawn = require('child_process').spawn;
 var alloc = require( 'buffer-alloc' );
 
+var Promise = global.Promise;
 if ( !Promise ) {
 	Promise = require( 'es6-promise' );
 }
