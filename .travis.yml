@@ -1,9 +1,15 @@
 language: node_js
 node_js:
-  - "node"
-before_install:
-  - npm i ffmpeg-static
+  - 0.10.48
+  - 0.12.18
+  - 4
+  - 6
+  - 8
+  - 10
+  - node
 install:
-  - npm install jshint -g
+  - npm i
+#  - npm install jshint -g
 script:
-  - jshint index.js
+#  - jshint index.js
+  - npm test
