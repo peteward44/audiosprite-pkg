@@ -91,7 +91,7 @@ function simpleOutputFormatTestPromise( format, outputArgs, outputName ) {
 }
 
 
-const formatsToTest = [
+var formatsToTest = [
 	'ogg', 'mp3', 'mp4', 'm4a', 'wav', 'ac3', 'aiff', 'caf'
 ];
 
@@ -100,8 +100,8 @@ describe('audiosprite-pkg', function() {
 	this.timeout(10 * 60 * 1000 * 1000);
 	describe('different output formats individually', function() {
 		
-		for ( let i=0; i<formatsToTest.length; ++i ) {
-			const format = formatsToTest[i];
+		for ( var i=0; i<formatsToTest.length; ++i ) {
+			var format = formatsToTest[i];
 			it( format + ' callback API', function( done ) {
 				simpleOutputFormatTest( format, done );
 			});
@@ -129,13 +129,13 @@ describe('audiosprite-pkg', function() {
 				path.join( g_fixturesPath, 'ogg/Symbol0.ogg' )
 			],
 			as = new AudioSprite(asOpt);
-			as.inputFile(files, asInOpt, (err) => {
+			as.inputFile(files, asInOpt, function(err) {
 				if(err) {
 					console.error(err);
 					return done( err );
 				}
 				console.log( path.join( g_outputDir, 'test.ogg' ) )
-				as.outputFile( path.join( g_outputDir, 'test.ogg' ), asOutOpt, (err) => {
+				as.outputFile( path.join( g_outputDir, 'test.ogg' ), asOutOpt, function(err) {
 					if(err) {
 						console.error(err);
 						return done( err );

@@ -8,6 +8,11 @@ var os = require( 'os' );
 var path = require('path');
 var async = require('async');
 var spawn = require('child_process').spawn;
+var alloc = require( 'buffer-alloc' );
+
+if ( !Promise ) {
+	Promise = require( 'es6-promise' );
+}
 
 
 function safeSpawn( cmd, args, cb ) {
@@ -84,7 +89,7 @@ var AudioSprite = function( options ) {
 	this._options.bufferInitialSize = isFinite( this._options.bufferInitialSize ) ? this._options.bufferInitialSize : (300 * 1024);
 	this._options.bufferIncrementSize = isFinite( this._options.bufferIncrementSize ) ? this._options.bufferIncrementSize : (100 * 1024);
 	
-	this._buffer = Buffer.alloc( this._options.bufferInitialSize );
+	this._buffer = alloc( this._options.bufferInitialSize );
 	this._bufferPos = 0;
 };
 
@@ -100,7 +105,7 @@ AudioSprite.prototype._growBuffer = function( additional ) {
 		var extraRequired = additional - spaceAvailable;
 		var chunksRequired = Math.floor( extraRequired / this._options.bufferIncrementSize ) + 1;
 		var newSize = ( this._buffer ? this._buffer.length : 0 ) + ( chunksRequired * this._options.bufferIncrementSize );
-		var newBuffer = Buffer.alloc( newSize );
+		var newBuffer = alloc( newSize );
 		if ( this._buffer ) {
 			this._buffer.copy( newBuffer, 0, 0, this._bufferPos );
 		}
@@ -402,7 +407,7 @@ AudioSprite.prototype._outputFileIndividual = function( file, options, callback 
 				proc.stdin.end( that._buffer );
 				proc.on('exit', function(code, signal) {
 					if (code) {
-						const cmd = that._options.ffmpeg + ' ' + args.join( ' ' );
+						var cmd = that._options.ffmpeg + ' ' + args.join( ' ' );
 						return cb({ msg: 'Error exporting file', format: format, retcode: code, signal: signal, cmd: cmd, stderr: stderr });
 					}
 					return cb();
@@ -429,7 +434,7 @@ AudioSprite.prototype._outputFileIndividual = function( file, options, callback 
 				} );
 				proc.on('exit', function(code, signal) {
 					if (code) {
-						const cmd = that._options.ffmpeg + ' ' + args.join( ' ' );
+						var cmd = that._options.ffmpeg + ' ' + args.join( ' ' );
 						return cb({ msg: 'Error exporting file', format: format, retcode: code, signal: signal, cmd: cmd, stderr: stderr });
 					}
 					that._json.resources.push( options.name );

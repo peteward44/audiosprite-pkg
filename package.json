@@ -27,12 +27,14 @@
   },
   "dependencies": {
     "async": "^1.5.2",
+    "buffer-alloc": "^1.2.0",
+    "es6-promise": "^4.2.5",
     "fs-extra": "^0.26.5",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
     "ffmpeg-static": "^2.4.0",
-    "mocha": "^5.2.0"
+    "mocha": "^3.5.3"
   },
   "ignore": [
     "test",
