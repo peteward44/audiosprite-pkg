@@ -1,6 +1,6 @@
 {
   "name": "audiosprite-pkg",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Concat small audio files into single file and export in many formats.",
   "keywords": [
     "audio",

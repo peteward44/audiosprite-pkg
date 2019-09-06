@@ -1,6 +1,6 @@
 # audiosprite-pkg
 
-[![Build Status](https://travis-ci.org/peteward44/audiosprite-pkg.svg?branch=master)](https://travis-ci.org/peteward44/audiosprite-pkg)
+***This project is no longer maintained***
 
 Based on the audiosprite module (https://github.com/tonistiigi/audiosprite), takes the same functionality but exposes it as a node module instead of command line.
 
